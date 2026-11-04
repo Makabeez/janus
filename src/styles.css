@@ -82,7 +82,7 @@ code { font-size: 0.92em; color: var(--bronze); }
 }
 .face-word { font: 2.6rem/1 var(--display); letter-spacing: 0.04em; }
 .face-pool { font-size: 0.8125rem; font-weight: 600; font-variant-numeric: tabular-nums; }
-.face-pay { font-size: 0.8125rem; min-height: 1.2em; font-variant-numeric: tabular-nums; }
+.face-pay { font-size: 0.8125rem; min-height: 1.2em; max-width: 13ch; text-align: center; line-height: 1.25; font-variant-numeric: tabular-nums; }
 .face.up:hover:not(:disabled), .face.up:focus-visible { background: rgba(91, 192, 160, 0.38); }
 .face.down:hover:not(:disabled), .face.down:focus-visible { background: rgba(201, 84, 63, 0.38); }
 .face.up .face-word { color: #17463a; }

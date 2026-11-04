@@ -179,11 +179,14 @@ export default function App() {
   const left = lockAt - now;
   const elapsed = snap ? Math.min(1, Math.max(0, 1 - left / interval)) : 0;
   const feeMul = meta ? 1 - meta.feeBps / 10_000 : 0.99;
+  /** What a bet on this side would pay right now, or why it can't be quoted yet. */
   const payoutIf = (up: boolean) => {
-    if (!snap || stake === 0n) return undefined;
+    if (!snap || stake === 0n) return " ";
+    const other = up ? snap.open.downPool : snap.open.upPool;
+    if (other === 0n) return `refunded if nobody takes ${up ? "Down" : "Up"}`;
     const pool = Number(snap.open.upPool + snap.open.downPool + stake);
     const side = Number((up ? snap.open.upPool : snap.open.downPool) + stake);
-    return (pool * feeMul) / side;
+    return `pays ${((pool * feeMul) / side).toFixed(2)}×`;
   };
   const printAge = print ? now - Number(print.publishTime) : undefined;
   const liveLead = snap && print && snap.live.status === RoundStatus.Locked ? (print.price > snap.live.strike ? "UP" : print.price < snap.live.strike ? "DOWN" : "flat") : undefined;
@@ -236,13 +239,13 @@ export default function App() {
             <button className="face up" disabled={!canBet} onClick={() => placeBet(true)}>
               <span className="face-word">Up</span>
               <span className="face-pool">{snap ? usd(snap.open.upPool) : "0"} in pool</span>
-              <span className="face-pay">{payoutIf(true) ? `pays ${payoutIf(true)!.toFixed(2)}×` : " "}</span>
+              <span className="face-pay">{payoutIf(true)}</span>
             </button>
             <div className="axis" aria-hidden />
             <button className="face down" disabled={!canBet} onClick={() => placeBet(false)}>
               <span className="face-word">Down</span>
               <span className="face-pool">{snap ? usd(snap.open.downPool) : "0"} in pool</span>
-              <span className="face-pay">{payoutIf(false) ? `pays ${payoutIf(false)!.toFixed(2)}×` : " "}</span>
+              <span className="face-pay">{payoutIf(false)}</span>
             </button>
           </div>
         </div>
