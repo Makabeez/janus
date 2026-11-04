@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 300" width="1200" height="300" role="img" aria-label="Janus — BTC UP/DOWN rounds on Rome">
+  <defs>
+    <radialGradient id="m" cx="42%" cy="36%" r="70%">
+      <stop offset="0%" stop-color="#D9AE6E"/>
+      <stop offset="55%" stop-color="#A9773C"/>
+      <stop offset="100%" stop-color="#6E4A22"/>
+    </radialGradient>
+    <style>
+      .b{fill:#6E4A22;animation:lit 6s linear infinite}
+      @keyframes lit{0%,8%{fill:#6E4A22}12%,70%{fill:#EAE3CF}80%,100%{fill:#6E4A22}}
+      @media (prefers-reduced-motion:reduce){.b{animation:none;fill:#EAE3CF}}
+    </style>
+  </defs>
+  <rect width="1200" height="300" fill="#14302A"/>
+  <g transform="translate(170 150)">
+    <circle r="118" fill="url(#m)"/>
+    <circle r="104" fill="none" stroke="#5E3F1D" stroke-width="1.5" opacity=".6"/>
+    <line x1="0" y1="-86" x2="0" y2="86" stroke="#3C2610" stroke-opacity=".55" stroke-width="2"/>
+    <text x="-46" y="10" font-family="Marcellus, Georgia, serif" font-size="30" fill="#17463A" text-anchor="middle">Up</text>
+    <text x="46" y="10" font-family="Marcellus, Georgia, serif" font-size="30" fill="#5A1D12" text-anchor="middle">Down</text>
+    <g>
+      <circle class="b" cx="0" cy="-111" r="3.4" style="animation-delay:0s"/>
+      <circle class="b" cx="38" cy="-104" r="3.4" style="animation-delay:.2s"/>
+      <circle class="b" cx="71" cy="-85" r="3.4" style="animation-delay:.4s"/>
+      <circle class="b" cx="96" cy="-55" r="3.4" style="animation-delay:.6s"/>
+      <circle class="b" cx="109" cy="-19" r="3.4" style="animation-delay:.8s"/>
+      <circle class="b" cx="109" cy="19" r="3.4" style="animation-delay:1s"/>
+      <circle class="b" cx="96" cy="55" r="3.4" style="animation-delay:1.2s"/>
+      <circle class="b" cx="71" cy="85" r="3.4" style="animation-delay:1.4s"/>
+      <circle class="b" cx="38" cy="104" r="3.4" style="animation-delay:1.6s"/>
+      <circle class="b" cx="0" cy="111" r="3.4" style="animation-delay:1.8s"/>
+      <circle class="b" cx="-38" cy="104" r="3.4" style="animation-delay:2s"/>
+      <circle class="b" cx="-71" cy="85" r="3.4" style="animation-delay:2.2s"/>
+      <circle class="b" cx="-96" cy="55" r="3.4" style="animation-delay:2.4s"/>
+      <circle class="b" cx="-109" cy="19" r="3.4" style="animation-delay:2.6s"/>
+      <circle class="b" cx="-109" cy="-19" r="3.4" style="animation-delay:2.8s"/>
+      <circle class="b" cx="-96" cy="-55" r="3.4" style="animation-delay:3s"/>
+      <circle class="b" cx="-71" cy="-85" r="3.4" style="animation-delay:3.2s"/>
+      <circle class="b" cx="-38" cy="-104" r="3.4" style="animation-delay:3.4s"/>
+    </g>
+  </g>
+  <text x="340" y="140" font-family="Marcellus, Georgia, serif" font-size="76" fill="#EAE3CF" letter-spacing="4">Janus</text>
+  <text x="344" y="190" font-family="Public Sans, Helvetica, Arial, sans-serif" font-size="24" fill="#8DA59C">BTC UP/DOWN rounds. One pool for MetaMask and Solana wallets.</text>
+  <text x="344" y="228" font-family="Public Sans, Helvetica, Arial, sans-serif" font-size="18" fill="#C2924F">Built on Rome — EVM inside Solana, priced by Pyth on Solana</text>
+</svg>

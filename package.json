@@ -1,0 +1,45 @@
+{
+  "name": "janus",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "gen-config": "tsx scripts/gen-config.ts",
+    "deploy": "tsx scripts/deploy.ts",
+    "keeper": "tsx scripts/keeper.ts",
+    "demo": "tsx scripts/demo.ts",
+    "test": "hardhat --config hardhat.config.cjs test",
+    "dev": "npm run gen-config && vite",
+    "build": "npm run gen-config && tsc --noEmit && vite build",
+    "typecheck": "npm run gen-config && tsc --noEmit"
+  },
+  "dependencies": {
+    "@rome-protocol/registry": "github:rome-protocol/rome-registry#v0.3.0",
+    "@rome-protocol/sdk": "github:rome-protocol/rome-sdk-ts#v0.4.0",
+    "@solana/spl-token": "^0.4.9",
+    "@solana/web3.js": "^1.95.0",
+    "@wallet-standard/app": "~1.1.0",
+    "buffer": "^6.0.3",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "viem": "^2.21.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.0",
+    "dotenv": "^16.4.5",
+    "solc": "0.8.26",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0",
+    "vite": "^5.4.0",
+    "hardhat": "^2.28.0",
+    "@nomicfoundation/hardhat-ethers": "^3.0.8",
+    "@nomicfoundation/hardhat-chai-matchers": "^2.0.8",
+    "ethers": "^6.13.0",
+    "chai": "^4.5.0",
+    "@types/node": "^20.14.0"
+  },
+  "description": "BTC UP/DOWN rounds on Rome — one pool for MetaMask and Solana wallets",
+  "license": "MIT"
+}
