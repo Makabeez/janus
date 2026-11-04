@@ -4,7 +4,7 @@
 
 **BTC UP/DOWN rounds on Rome. A MetaMask wallet and a Solana wallet bet into the same pool, priced by Pyth on Solana.**
 
-[![Live demo](https://img.shields.io/badge/Live_demo-pending_deploy-C2924F?style=for-the-badge)](#deployment)
+[![Live demo](https://img.shields.io/badge/Live_demo-janus--sepia--nine.vercel.app-C2924F?style=for-the-badge)](https://janus-sepia-nine.vercel.app)
 [![Contract](https://img.shields.io/badge/Contract-0x6ba4…4108-5BC0A0?style=for-the-badge)](https://via-hadrian.testnet.romeprotocol.xyz/address/0x6ba430e36fa83955ef94845ea0dcadb28af84108)
 [![Built on Rome](https://img.shields.io/badge/Built_on-Rome-14302A?style=for-the-badge)](https://docs.rome.builders)
 [![License: MIT](https://img.shields.io/badge/License-MIT-EAE3CF?style=for-the-badge)](LICENSE)
@@ -103,7 +103,8 @@ The cadence is why the default `tolerance` is 10 minutes: the window always cont
 | Contract logic | Real — 13 Hardhat tests, mocked token + book |
 | PriceBook refresh path | Real (simulated call against the live Hadrian book) |
 | Hadrian deployment | Real — [`0x6ba4…4108`](https://via-hadrian.testnet.romeprotocol.xyz/address/0x6ba430e36fa83955ef94845ea0dcadb28af84108), [deploy tx](https://via-hadrian.testnet.romeprotocol.xyz/tx/0xedf1821e805c743ab6613c74b09df7f71826088901cb89180886c9757898b4fe) |
-| Both-lane bet into one round | **Pending** — `npm run demo` after deploy |
+| Frontend | Real — [janus-sepia-nine.vercel.app](https://janus-sepia-nine.vercel.app), reads the deployed contract and the live PriceBook |
+| Both-lane bet into one round | **Pending** — first MetaMask + Solflare round, or `npm run demo` |
 | Money | Test USDC only. Hadrian settles on Solana devnet. |
 
 ## Honest limits
@@ -134,7 +135,7 @@ Fund Hadrian gas with the [Rome Bridge](https://bridge-api.devnet.romeprotocol.x
 | Chain | Rome Hadrian, chain id 200010 |
 | Janus | [`0x6ba430e36fa83955ef94845ea0dcadb28af84108`](https://via-hadrian.testnet.romeprotocol.xyz/address/0x6ba430e36fa83955ef94845ea0dcadb28af84108) |
 | Explorer | [Via](https://via-hadrian.testnet.romeprotocol.xyz/) |
-| App | pending (Vercel) |
+| App | [janus-sepia-nine.vercel.app](https://janus-sepia-nine.vercel.app) |
 
 ## Attribution
 
