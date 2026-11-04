@@ -5,7 +5,7 @@
 **BTC UP/DOWN rounds on Rome. A MetaMask wallet and a Solana wallet bet into the same pool, priced by Pyth on Solana.**
 
 [![Live demo](https://img.shields.io/badge/Live_demo-pending_deploy-C2924F?style=for-the-badge)](#deployment)
-[![Contract](https://img.shields.io/badge/Contract-Hadrian_200010-5BC0A0?style=for-the-badge)](#deployment)
+[![Contract](https://img.shields.io/badge/Contract-0x6ba4…4108-5BC0A0?style=for-the-badge)](https://via-hadrian.testnet.romeprotocol.xyz/address/0x6ba430e36fa83955ef94845ea0dcadb28af84108)
 [![Built on Rome](https://img.shields.io/badge/Built_on-Rome-14302A?style=for-the-badge)](https://docs.rome.builders)
 [![License: MIT](https://img.shields.io/badge/License-MIT-EAE3CF?style=for-the-badge)](LICENSE)
 
@@ -91,6 +91,7 @@ Everything below was measured on Hadrian / Solana devnet on 4 Nov 2026. None of 
 | `-BOOK` feeds (9 live) | serve prices (BTC ≈ $80,1xx) | same sweep |
 | PriceBook `refreshAll` from an EVM call | commits (`[1,0,0]`) | `eth_call` against the live book |
 | Pyth devnet BTC publish cadence | 6 prints, 21:31:42 → 21:57:11 UTC, every ≈ 306 s | 15-s poll of the Solana account |
+| Deploy cost (7,530-byte contract) | 45,186,201 gas; charged at the full `maxFeePerGas` (effective 192.88 gwei = max fee) | receipt of the deploy tx |
 | Drift v2 devnet perp markets | last activity: BTC/ETH May 2026, SOL Oct 12 | `getSignaturesForAddress` on each market PDA |
 
 The cadence is why the default `tolerance` is 10 minutes: the window always contains at least one print and at most two.
@@ -101,7 +102,7 @@ The cadence is why the default `tolerance` is 10 minutes: the window always cont
 | --- | --- |
 | Contract logic | Real — 13 Hardhat tests, mocked token + book |
 | PriceBook refresh path | Real (simulated call against the live Hadrian book) |
-| Hadrian deployment | **Pending** — needs a funded deployer key |
+| Hadrian deployment | Real — [`0x6ba4…4108`](https://via-hadrian.testnet.romeprotocol.xyz/address/0x6ba430e36fa83955ef94845ea0dcadb28af84108), [deploy tx](https://via-hadrian.testnet.romeprotocol.xyz/tx/0xedf1821e805c743ab6613c74b09df7f71826088901cb89180886c9757898b4fe) |
 | Both-lane bet into one round | **Pending** — `npm run demo` after deploy |
 | Money | Test USDC only. Hadrian settles on Solana devnet. |
 
@@ -116,7 +117,7 @@ The cadence is why the default `tolerance` is 10 minutes: the window always cont
 
 ```bash
 npm install
-cp .env.example .env          # ROME_EVM_KEY = a TESTNET-only key with ~1 USDC of Hadrian gas
+cp .env.example .env          # ROME_EVM_KEY = a TESTNET-only key with ~10 USDC of Hadrian gas
 npm test                      # contract tests
 npm run deploy                # prints JANUS_ADDRESS
 npm run keeper                # lock/settle loop (run it under PM2)
@@ -131,7 +132,7 @@ Fund Hadrian gas with the [Rome Bridge](https://bridge-api.devnet.romeprotocol.x
 | | |
 | --- | --- |
 | Chain | Rome Hadrian, chain id 200010 |
-| Janus | pending |
+| Janus | [`0x6ba430e36fa83955ef94845ea0dcadb28af84108`](https://via-hadrian.testnet.romeprotocol.xyz/address/0x6ba430e36fa83955ef94845ea0dcadb28af84108) |
 | Explorer | [Via](https://via-hadrian.testnet.romeprotocol.xyz/) |
 | App | pending (Vercel) |
 

@@ -61,10 +61,18 @@ export async function deployJanus(cfg: RomeConfig, account: Account, p: JanusPar
   const args = [cfg.wusdc, book, feed, genesis, p.interval, p.tolerance, p.minBet, p.feeBps, p.treasury] as const;
 
   const gp = await pub.getGasPrice();
-  // Rome writes price Solana account creation into gas: estimate, then pad 1.3x (never a fixed guess).
+  // Rome prices Solana account creation into gas: estimate, then pad the LIMIT 1.15x (unused gas
+  // is not charged). Do NOT pad the fee: measured on Hadrian, the receipt's effectiveGasPrice equals
+  // maxFeePerGas, so every gwei of fee headroom is paid in full.
   const est = await pub.estimateGas({ account, data: encodeDeployData({ abi, bytecode, args }) });
-  const gas = (est * 13n) / 10n;
-  const hash = await wallet.deployContract({ abi, bytecode, args, gas, maxFeePerGas: (gp * 3n) / 2n, maxPriorityFeePerGas: 0n } as any);
+  const gas = (est * 115n) / 100n;
+  const need = gas * gp; // the node checks gas limit x max fee against the balance up front
+  const have = await pub.getBalance({ address: account.address });
+  if (have < need) {
+    const fmt = (x: bigint) => (Number(x) / 1e18).toFixed(2);
+    throw new Error(`deployer holds ${fmt(have)} USDC gas; the deploy needs ${fmt(need)} up front (expected spend ≈ ${fmt(est * gp)}). Bridge more USDC to Hadrian.`);
+  }
+  const hash = await wallet.deployContract({ abi, bytecode, args, gas, maxFeePerGas: gp, maxPriorityFeePerGas: 0n } as any);
   const rcpt = await pub.waitForTransactionReceipt({ hash });
   if (rcpt.status !== "success" || !rcpt.contractAddress) throw new Error(`Janus deploy failed (tx ${hash})`);
   return { address: rcpt.contractAddress, hash, book, feed, genesis, args };
