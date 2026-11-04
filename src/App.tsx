@@ -127,7 +127,7 @@ export default function App() {
     setBusy(label);
     setNote(undefined);
     try {
-      await fn((step, detail) => setBusy(`${label}: ${step}${detail ? ` (${detail})` : ""}`));
+      await fn((step, detail) => setBusy(`${label}: ${step}${detail ? ` (${detail})` : ""} — confirm in your wallet`));
       setNote({ kind: "ok", text: done });
       await load();
     } catch (e) {
@@ -137,12 +137,40 @@ export default function App() {
     }
   }
 
+  // MetaMask signs on whatever network it is set to. Rome writes must go to this chain, so
+  // switch (or add) it before connecting and again before every write: a wallet left on another
+  // chain (e.g. after bridging from Monad testnet) would otherwise sign there or hang.
+  const ensureChain = async () => {
+    const want = `0x${cfg.chainId.toString(16)}`;
+    const have = await eth().request({ method: "eth_chainId" });
+    if (String(have).toLowerCase() === want) return;
+    try {
+      await eth().request({ method: "wallet_switchEthereumChain", params: [{ chainId: want }] });
+    } catch (e: any) {
+      if (e?.code !== 4902 && !/unrecognized|not added|unknown chain/i.test(String(e?.message))) throw e;
+      await eth().request({
+        method: "wallet_addEthereumChain",
+        params: [{
+          chainId: want,
+          chainName: "Rome Hadrian",
+          nativeCurrency: { name: "USDC", symbol: "USDC", decimals: 18 },
+          rpcUrls: [cfg.proxyUrl],
+          blockExplorerUrls: [cfg.explorerUrl],
+        }],
+      });
+    }
+    const now = await eth().request({ method: "eth_chainId" });
+    if (String(now).toLowerCase() !== want) throw new Error(`MetaMask is not on Rome Hadrian (${cfg.chainId}). Switch networks and try again.`);
+  };
+
   const connectEvm = () =>
     run("Connecting MetaMask", async () => {
+      if (!eth()) throw new Error("No EVM wallet found. Install MetaMask to use the EVM lane.");
       const [a] = await eth().request({ method: "eth_requestAccounts" });
+      await ensureChain();
       setEvmAddr(a);
       setLane("evm");
-    }, "MetaMask connected.");
+    }, "MetaMask connected on Rome Hadrian.");
   const connectSol = (w: Wallet) =>
     run(`Connecting ${w.name}`, async () => {
       setSol({ wallet: w, account: await connectSolanaWallet(w) });
@@ -160,7 +188,7 @@ export default function App() {
     if (!snap || !JANUS) return;
     const r = snap.round;
     const side = up ? "UP" : "DOWN";
-    if (lane === "evm") return run(`Betting ${side}`, (log) => rome.evmBet(eth(), evmAddr!, cfg, JANUS, r, up, stake, log), `Bet placed: ${usd(stake)} wUSDC on ${side} in round ${r}.`);
+    if (lane === "evm") return run(`Betting ${side}`, async (log) => { await ensureChain(); return rome.evmBet(eth(), evmAddr!, cfg, JANUS, r, up, stake, log); }, `Bet placed: ${usd(stake)} wUSDC on ${side} in round ${r}.`);
     return run(`Betting ${side}`, (log) => rome.solanaBet(cfg, solWallet(), JANUS, r, up, stake, log), `Bet placed: ${usd(stake)} USDC on ${side} in round ${r}.`);
   };
 
@@ -168,7 +196,7 @@ export default function App() {
   const claim = (l: Lane) => {
     const rs = claimRows.filter((x) => x.lane === l).map((x) => x.r);
     if (!rs.length || !JANUS) return;
-    if (l === "evm") return run("Claiming", () => rome.evmClaim(eth(), evmAddr!, cfg, JANUS, rs), "Claimed to your MetaMask wallet.");
+    if (l === "evm") return run("Claiming", async () => { await ensureChain(); return rome.evmClaim(eth(), evmAddr!, cfg, JANUS, rs); }, "Claimed to your MetaMask wallet.");
     return run("Claiming", (log) => rome.solanaClaim(cfg, solWallet(), JANUS, rs, log), "Claimed and sent back to your Solana wallet.");
   };
 
