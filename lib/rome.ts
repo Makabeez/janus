@@ -13,12 +13,13 @@ import {
   buildSweepLeg,
   buildCreatePdaCall,
   isSyntheticProvisioned,
+  submitSolanaInstructions,
   submitSolanaInstructionsV1,
   toLaneSigner,
   type SignerLike,
 } from "@rome-protocol/sdk";
 import { createPublicClient, http, encodeFunctionData, erc20Abi, parseAbi, type Hex } from "viem";
-import { Connection, PublicKey } from "@solana/web3.js";
+import { Connection, PublicKey, type Transaction, type TransactionInstruction } from "@solana/web3.js";
 import type { RomeConfig } from "./config.js";
 
 export const JANUS_ABI = parseAbi([
@@ -100,8 +101,16 @@ const U64_MAX = 2n ** 64n - 1n;
 const WEI_PER_WUSDC_UNIT = 10n ** 12n;
 
 type Eip1193 = { request: (args: { method: string; params?: any[] }) => Promise<any> };
-/** What a Solana user hands the lane helpers: a signer for Solana v1 transactions. */
-export type SolanaWallet = { signer: SignerLike };
+/**
+ * What a Solana user hands the lane helpers: a signer for Solana v1 transactions (the Rome calls,
+ * whose bytes must not change), and optionally `signLegacy` for the plain Solana steps.
+ *
+ * Why two paths: browser wallets such as Solflare add their own priority-fee instruction to any
+ * transaction they can simulate. On the strict v1 path the SDK then (correctly) rejects the
+ * signature as "a different transaction than the one composed". The fund leg and the wallet ATA
+ * creation carry no Rome authorization, so a wallet-modified legacy transaction is fine for them.
+ */
+export type SolanaWallet = { signer: SignerLike; signLegacy?: (tx: Transaction) => Promise<Transaction> };
 
 // ------------------------------ reads (either lane) ------------------------------
 const clients = new Map<string, ReturnType<typeof createPublicClient>>();
@@ -215,6 +224,12 @@ function laneV1Deps(cfg: RomeConfig, signer: SignerLike) {
   return { connection: new Connection(cfg.solanaRpc, "confirmed"), proxyUrl: cfg.proxyUrl, chainId: cfg.chainId, programId: cfg.programId, signer };
 }
 const payerOf = (w: SolanaWallet) => toLaneSigner(w.signer).payer;
+/** Send plain Solana instructions: as a legacy tx the wallet may modify when it can, else strict v1. */
+function sendPlain(cfg: RomeConfig, wallet: SolanaWallet, ixs: TransactionInstruction[]) {
+  const connection = new Connection(cfg.solanaRpc, "confirmed");
+  if (wallet.signLegacy) return submitSolanaInstructions(ixs, { connection, feePayer: payerOf(wallet), signTransaction: wallet.signLegacy });
+  return submitSolanaInstructionsV1(ixs, { connection, signer: wallet.signer });
+}
 // A v1 call that lands on Solana can still revert in the EVM (a relayed call does not throw),
 // or its receipt can time out. Treat both as failure so a flow never moves past a failed step.
 async function landed<R extends { receipt: { status?: string } | null }>(step: string, call: Promise<R>): Promise<R> {
@@ -228,10 +243,7 @@ async function solanaFundTo(cfg: RomeConfig, wallet: SolanaWallet, amount: bigin
   const synthetic = syntheticAddress(payer);
   const balance = await wusdcBalanceOf(cfg, synthetic);
   if (balance >= amount) return undefined; // only the shortfall moves, so a retried bet reuses what is there
-  return submitSolanaInstructionsV1(
-    buildFundLeg({ programId: cfg.programId, chainId: cfg.chainId, mint: new PublicKey(cfg.usdcMint), amount: amount - balance, wallet: payer, synthetic }),
-    { connection: new Connection(cfg.solanaRpc, "confirmed"), signer: wallet.signer },
-  );
+  return sendPlain(cfg, wallet, buildFundLeg({ programId: cfg.programId, chainId: cfg.chainId, mint: new PublicKey(cfg.usdcMint), amount: amount - balance, wallet: payer, synthetic }));
 }
 
 /**
@@ -271,7 +283,7 @@ export async function solanaClaim(cfg: RomeConfig, wallet: SolanaWallet, janus: 
   if (amount === 0n) return;
   log("sweep", "synthetic → wallet");
   const sweep = buildSweepLeg({ programId: cfg.programId, mint: new PublicKey(cfg.usdcMint), amount, wallet: payer, synthetic });
-  await submitSolanaInstructionsV1([sweep.ensureWalletAtaIx], { connection: deps.connection, signer: wallet.signer });
+  await sendPlain(cfg, wallet, [sweep.ensureWalletAtaIx]);
   return landed("sweep", submitRomeTxV1(deps, { to: sweep.helperTo, data: sweep.calldata }));
 }
 

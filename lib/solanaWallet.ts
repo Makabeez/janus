@@ -5,7 +5,7 @@
 // `solana:signTransaction` (for v1 transactions) works. The fund leg and the token-account
 // creation are v1 transactions too, so they use the same signer.
 import { getWallets } from "@wallet-standard/app";
-import { PublicKey } from "@solana/web3.js";
+import { PublicKey, Transaction } from "@solana/web3.js";
 import type { SolanaWallet } from "./rome";
 
 export type Wallet = ReturnType<ReturnType<typeof getWallets>["get"]>[number];
@@ -53,6 +53,11 @@ export function laneWallet(wallet: Wallet, account: Account, chain: string): Sol
         return signature; // 64 bytes
       },
       signV1Wire: async (wire) => (await signWire(wire)).slice(-64), // the 64-byte signature at the end of the signed wire
+    },
+    // Plain Solana steps (fund leg, ATA creation): the wallet may add its own priority fee; we send what it signed.
+    signLegacy: async (tx: Transaction) => {
+      const bytes = tx.serialize({ requireAllSignatures: false, verifySignatures: false });
+      return Transaction.from(await signWire(bytes));
     },
   };
 }
