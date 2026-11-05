@@ -11,6 +11,7 @@
 
 ![Solidity](https://img.shields.io/badge/Solidity-0.8.26-363636?logo=solidity)
 ![Tests](https://img.shields.io/badge/tests-13_passing-5BC0A0)
+![Two-wallet round](https://img.shields.io/badge/two--wallet_round-live_on_Hadrian-C2924F)
 ![Pyth](https://img.shields.io/badge/oracle-Pyth_via_Oracle_Gateway-8DA59C)
 ![React](https://img.shields.io/badge/React-18-61DAFB?logo=react)
 
@@ -52,7 +53,7 @@ The second point is price integrity on a testnet oracle that is mostly broken (s
 | Contract | `contracts/Janus.sol` — Solidity 0.8.26, no dependencies |
 | Price | Rome Oracle Gateway `PriceBook` (BTC/USD-BOOK) → Pyth pull account on Solana devnet |
 | Token | wUSDC (Circle devnet USDC surfaced as ERC-20 by Rome's SPL wrapper) |
-| Wallet lanes | `@rome-protocol/sdk` v0.4.0 — `submitRomeTx` (EVM), `submitRomeTxV1` (Solana) |
+| Wallet lanes | `@rome-protocol/sdk` v0.4.0 — `submitRomeTx` (EVM); `submitRomeTxSolanaLane` for Solana wallets that sign legacy txs, `submitRomeTxV1` otherwise |
 | Config | `@rome-protocol/registry` v0.3.0 — chain, wUSDC, feed adapter; nothing hardcoded |
 | Frontend | React 18 + Vite, Wallet Standard for any Solana wallet |
 | Tests | Hardhat + chai, mocks for the token and the PriceBook |
@@ -104,8 +105,26 @@ The cadence is why the default `tolerance` is 10 minutes: the window always cont
 | PriceBook refresh path | Real (simulated call against the live Hadrian book) |
 | Hadrian deployment | Real — [`0x6ba4…4108`](https://via-hadrian.testnet.romeprotocol.xyz/address/0x6ba430e36fa83955ef94845ea0dcadb28af84108), [deploy tx](https://via-hadrian.testnet.romeprotocol.xyz/tx/0xedf1821e805c743ab6613c74b09df7f71826088901cb89180886c9757898b4fe) |
 | Frontend | Real — [janus-sepia-nine.vercel.app](https://janus-sepia-nine.vercel.app), reads the deployed contract and the live PriceBook |
-| Both-lane bet into one round | **Pending** — first MetaMask + Solflare round, or `npm run demo` |
+| Both-lane bet into one round | Real — round 45: MetaMask UP 1 USDC + Solflare DOWN 1 USDC, same pool ([proof](#first-two-wallet-round)) |
+| Void + refund + claim | Real — rounds 0 and 42 voided as one-sided by the keeper; refund claimed back to MetaMask |
 | Money | Test USDC only. Hadrian settles on Solana devnet. |
+
+## First two-wallet round
+
+Round 45, 5 Nov 2026, 22:00–22:30 UTC. One Janus pool, two wallet types, no bridge in between.
+
+| Step | Wallet | Tx |
+| --- | --- | --- |
+| Bet UP 1 USDC | MetaMask (EVM key) | [`0x7936…fe27`](https://via-hadrian.testnet.romeprotocol.xyz/tx/0x79366daaf1ae5b5c435b1042b4213c27040e6d3f04048c802c05d5210e76fe27) |
+| Wrapper grant (one-time) | Solflare (Solana key, no EVM key) | [`3idK…oQPj`](https://explorer.solana.com/tx/3idKF17NpHnRjKajJM67BqMwoevxrvHXMVXXjUZtJr5DAZGLBdWu7efs3bEYUPMboY2r49PiPmucXPeHyf1YoQPj?cluster=devnet) |
+| Fund leg: USDC → Rome address | Solflare | [`n4TU…Stn7p`](https://explorer.solana.com/tx/n4TUJssEbkLUCg8k2HwhvHBxXkSuQ37cJ2JrGFPhu51fYHwFR1mN3bZ9kuf3G37i3TahPAUsB57yNmWiBSStn7p?cluster=devnet) |
+| Bet DOWN 1 USDC | Solflare | [`E9ve…gXp`](https://explorer.solana.com/tx/E9veuQRqebjfN9zgFpXo8MXBMzhvnWnhCiFw8qKkmmpbb3znt3Ns9EsbSHmvBdPfoTNsnMAtX8SHqBhfTUSJgXp?cluster=devnet) · EVM view [`0x5467…d31f`](https://via-hadrian.testnet.romeprotocol.xyz/tx/0x5467a3969b60aab02f8eeff118834aa787c7fc06b5c309b661718b08a35ad31f) |
+
+Earlier rounds exercised the failure paths for real: round 42 had only an UP bet, the keeper voided it ([`0x55d7…b5bc`](https://via-hadrian.testnet.romeprotocol.xyz/tx/0x55d7e5f238a5fd8791e4f72d0987ad0b63fde7e99439ae07b7f60ff756dbb5bc)), and the stake was claimed back to MetaMask ([`0xcb95…02ef`](https://via-hadrian.testnet.romeprotocol.xyz/tx/0xcb95679081e16a6fa38645d42cbfae8a659ead3301541445a0627dfa96f602ef)).
+
+### What it took on the Solana side
+
+Solflare prepends its own `SetComputeUnitPrice` instruction to every transaction it can simulate. On the v1 lane the SDK compares the signed bytes with the composed ones and refuses to broadcast ("the wallet signed a different transaction than the one composed") — correctly, since a v1 signature covers the exact message. Janus therefore sends a Solana wallet's Rome calls through the SDK's legacy lane (`submitRomeTxSolanaLane`, `DoTxUnsigned`), where the Solana signature itself authorizes the call and a wallet-added fee instruction keeps the transaction valid. Measured on devnet before switching: the grant simulated OK both as composed and with a prepended fee instruction; bet/claim/sweep fit in 859/694/692 of 1232 bytes; an EVM revert fails the Solana transaction (`AtomicTxFailed`) instead of landing as a silent revert. The fund leg and ATA creation carry no Rome authorization and go out as ordinary wallet-signed transactions.
 
 ## Honest limits
 
