@@ -13,6 +13,7 @@ import {
   buildSweepLeg,
   buildCreatePdaCall,
   isSyntheticProvisioned,
+  submitRomeTxSolanaLane,
   submitSolanaInstructions,
   submitSolanaInstructionsV1,
   toLaneSigner,
@@ -238,6 +239,33 @@ async function landed<R extends { receipt: { status?: string } | null }>(step: s
   return r;
 }
 
+/**
+ * One Rome call from a Solana wallet.
+ *
+ * Wallets that can sign legacy transactions (`signLegacy`) use the SDK's legacy lane
+ * (`submitRomeTxSolanaLane`, DoTxUnsigned): the Solana signature itself authorizes the call, so a
+ * wallet that prepends its own priority-fee instruction (Solflare does) still produces a valid
+ * transaction. On the v1 lane the SDK rejects such a signature, by design. Measured on devnet
+ * (5 Nov 2026): the legacy wrapper grant simulates OK both as composed and with a prepended
+ * SetComputeUnitPrice; bet/claim/sweep fit in 859/694/692 of 1232 bytes; an EVM revert fails the
+ * Solana tx (AtomicTxFailed), so the SDK throws instead of landing a silent revert.
+ */
+async function romeCall(cfg: RomeConfig, wallet: SolanaWallet, step: string, call: { to: Hex; data?: Hex }) {
+  if (wallet.signLegacy) {
+    try {
+      return await submitRomeTxSolanaLane(
+        { connection: new Connection(cfg.solanaRpc, "confirmed"), proxyUrl: cfg.proxyUrl, programId: cfg.programId, chainId: cfg.chainId, payer: payerOf(wallet), signTransaction: wallet.signLegacy },
+        { ...call, autoProvision: false },
+      );
+    } catch (e: any) {
+      const msg = String(e?.message ?? e);
+      if (/reverted|AtomicTxFailed/i.test(msg)) throw new Error(`${step} reverted on Rome.`);
+      throw e;
+    }
+  }
+  return landed(step, submitRomeTxV1(laneV1Deps(cfg, wallet.signer), call));
+}
+
 async function solanaFundTo(cfg: RomeConfig, wallet: SolanaWallet, amount: bigint) {
   const payer = payerOf(wallet);
   const synthetic = syntheticAddress(payer);
@@ -247,44 +275,42 @@ async function solanaFundTo(cfg: RomeConfig, wallet: SolanaWallet, amount: bigin
 }
 
 /**
- * Bet from a Solana wallet. v1 calls that need no USDC go first (provision, approve), so a wallet
- * that cannot sign v1 transactions stops before the fund leg moves any USDC.
+ * Bet from a Solana wallet. Calls that need no USDC go first (provision, approve, wrapper grant),
+ * so a wallet that cannot complete them stops before the fund leg moves any USDC.
  */
 export async function solanaBet(cfg: RomeConfig, wallet: SolanaWallet, janus: Hex, r: bigint, up: boolean, amount: bigint, log: StepLog = () => {}) {
   const synthetic = syntheticAddress(payerOf(wallet));
-  const deps = laneV1Deps(cfg, wallet.signer);
-  if (!(await isSyntheticProvisioned(deps.connection, cfg.programId, synthetic))) {
+  if (!(await isSyntheticProvisioned(new Connection(cfg.solanaRpc, "confirmed"), cfg.programId, synthetic))) {
     log("provision", "one-time synthetic setup");
-    await landed("provision", submitRomeTxV1(deps, buildCreatePdaCall(synthetic)));
+    await romeCall(cfg, wallet, "provision", buildCreatePdaCall(synthetic));
   }
   if ((await allowanceOf(cfg, synthetic, janus)) < amount) {
     log("approve", "one-time approve");
-    await landed("approve", submitRomeTxV1(deps, { to: cfg.wusdc, data: approveData(janus) }));
+    await romeCall(cfg, wallet, "approve", { to: cfg.wusdc, data: approveData(janus) });
   }
-  log("fund", "USDC → synthetic");
-  await solanaFundTo(cfg, wallet, amount);
   const grant = await wrapperGrantCall(cfg, synthetic);
   if (grant) {
     log("grant", "one-time wrapper grant");
-    await landed("wrapper grant", submitRomeTxV1(deps, grant));
+    await romeCall(cfg, wallet, "wrapper grant", grant);
   }
+  log("fund", "USDC → synthetic");
+  await solanaFundTo(cfg, wallet, amount);
   log("bet", up ? "UP" : "DOWN");
-  return landed("bet", submitRomeTxV1(deps, { to: janus, data: betData(r, up, amount) }));
+  return romeCall(cfg, wallet, "bet", { to: janus, data: betData(r, up, amount) });
 }
 
 /** Claim to the synthetic, then sweep everything it holds back to the Solana wallet. */
 export async function solanaClaim(cfg: RomeConfig, wallet: SolanaWallet, janus: Hex, rounds: bigint[], log: StepLog = () => {}) {
   const payer = payerOf(wallet);
   const synthetic = syntheticAddress(payer);
-  const deps = laneV1Deps(cfg, wallet.signer);
   log("claim");
-  await landed("claim", submitRomeTxV1(deps, { to: janus, data: claimData(rounds) }));
+  await romeCall(cfg, wallet, "claim", { to: janus, data: claimData(rounds) });
   const amount = await wusdcBalanceOf(cfg, synthetic);
   if (amount === 0n) return;
   log("sweep", "synthetic → wallet");
   const sweep = buildSweepLeg({ programId: cfg.programId, mint: new PublicKey(cfg.usdcMint), amount, wallet: payer, synthetic });
   await sendPlain(cfg, wallet, [sweep.ensureWalletAtaIx]);
-  return landed("sweep", submitRomeTxV1(deps, { to: sweep.helperTo, data: sweep.calldata }));
+  return romeCall(cfg, wallet, "sweep", { to: sweep.helperTo, data: sweep.calldata });
 }
 
 /** The PriceBook + Solana source account behind the registry's BTC feed adapter. */
