@@ -6,6 +6,7 @@
 
 [![Live demo](https://img.shields.io/badge/Live_demo-janus--sepia--nine.vercel.app-C2924F?style=for-the-badge)](https://janus-sepia-nine.vercel.app)
 [![Contract](https://img.shields.io/badge/Contract-0x6ba4…4108-5BC0A0?style=for-the-badge)](https://via-hadrian.testnet.romeprotocol.xyz/address/0x6ba430e36fa83955ef94845ea0dcadb28af84108)
+[![Demo video](https://img.shields.io/badge/Demo-62s_video-C9543F?style=for-the-badge&logo=youtube&logoColor=white)](https://youtu.be/1scqc4JvXPk)
 [![Built on Rome](https://img.shields.io/badge/Built_on-Rome-14302A?style=for-the-badge)](https://docs.rome.builders)
 [![License: MIT](https://img.shields.io/badge/License-MIT-EAE3CF?style=for-the-badge)](LICENSE)
 
@@ -110,6 +111,8 @@ The cadence is why the default `tolerance` is 10 minutes: the window always cont
 | Money | Test USDC only. Hadrian settles on Solana devnet. |
 
 ## First two-wallet round
+
+Watch it: [62-second demo](https://youtu.be/1scqc4JvXPk) (MetaMask claims a refund and bets Up, Solflare bets Down, both shown on Rome's explorer).
 
 Round 45, 5 Nov 2026, 22:00–22:30 UTC. One Janus pool, two wallet types, no bridge in between.
 
